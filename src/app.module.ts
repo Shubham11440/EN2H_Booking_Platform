@@ -4,6 +4,7 @@ import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ServicesModule } from './services/services.module';
+import { BookingsModule } from './bookings/bookings.module';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { ServicesModule } from './services/services.module';
     PrismaModule,
     AuthModule,
     ServicesModule,
-    // BookingsModule  ← Phase 4
+    BookingsModule,
   ],
 })
 export class AppModule {}
