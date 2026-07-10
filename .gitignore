@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables — never commit actual secrets
+.env
+.env.local
+.env.production
+
+# Prisma generated client (regenerated via `prisma generate`)
+# The schema itself IS committed; only the generated client is ignored
+node_modules/.prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Test coverage
+coverage/
+
+# TypeScript incremental build
+*.tsbuildinfo

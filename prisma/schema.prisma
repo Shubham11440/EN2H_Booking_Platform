@@ -1,0 +1,74 @@
+// This is your Prisma schema file.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  password     String    @db.VarChar(255)
+  refreshToken String?   @db.Text
+  services     Service[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Service {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(150)
+  description String?   @db.Text
+  duration    Int       // minutes
+  price       Decimal   @db.Decimal(10, 2)
+  isActive    Boolean   @default(true)
+  createdBy   String
+  creator     User      @relation(fields: [createdBy], references: [id])
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("services")
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  customerName  String        @db.VarChar(100)
+  customerEmail String        @db.VarChar(255)
+  customerPhone String?       @db.VarChar(20)
+  serviceId     String
+  service       Service       @relation(fields: [serviceId], references: [id])
+  bookingDate   String        @db.VarChar(10)  // "YYYY-MM-DD"
+  bookingTime   String        @db.VarChar(5)   // "HH:MM"
+  status        BookingStatus @default(PENDING)
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Prevents double-booking the same service slot
+  @@unique([serviceId, bookingDate, bookingTime])
+  @@map("bookings")
+}
