@@ -1,0 +1,46 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Use this file for FULLY LOCAL development (no Supabase).
+# If you are using Supabase, you only need the `app` service below and
+# point DATABASE_URL in your .env to your Supabase connection string.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: en2h_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: en2h_booking_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      target: production
+    container_name: en2h_app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to use the local postgres container
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/en2h_booking_db?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
