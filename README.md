@@ -204,21 +204,6 @@ bookings      id (uuid) | customerName | customerEmail | customerPhone | service
               UNIQUE(serviceId, bookingDate, bookingTime)
 ```
 
----
-
-## Git Commit History
-
-| Commit | Message |
-|---|---|
-| `cdb0871` | feat: scaffold NestJS project with Prisma, ConfigModule, and JWT auth |
-| `89baf39` | feat: implement service management CRUD with auth guards |
-| `d5b88f2` | feat: implement booking management with pagination and filters |
-| `d965e07` | chore: configure Supabase directUrl and sync database migration |
-| `9fa785d` | feat: enforce business rules and domain validations for bookings |
-| `bdd0522` | feat: add Swagger docs, Docker support, and unit tests |
-
----
-
 ## Design Decisions & Assumptions
 
 - **Refresh token hashing** — raw refresh tokens are never stored in the database; only a bcrypt hash is persisted to mitigate token theft from DB dumps.
@@ -227,6 +212,27 @@ bookings      id (uuid) | customerName | customerEmail | customerPhone | service
 - **Decimal price** — `@db.Decimal(10,2)` avoids floating-point rounding errors for monetary values.
 - **Public booking creation** — customers create bookings without authentication; staff log in to manage them.
 
+---
+
+## How to Use (Visual Guide)
+
+### 1. Registration & Login
+Staff members can create an account and log in. Once logged in, copy the `accessToken`.
+
+![Registration and Login](![alt text](image.png))
+
+### 2. Authorize
+Click the **Authorize** button (padlock icon) at the top right of the Swagger UI. Paste your `accessToken` to unlock protected endpoints.
+
+![Authorize](![alt text](image-1.png))
+
+### 3. Manage Services & Bookings
+With authorization, staff can create new services (`POST /services`), view all bookings (`GET /bookings`), and update booking statuses (`PATCH /bookings/:id/status`).
+
+![Services and Bookings](![alt text](image-2.png))
+
+### 4. Overall Screenshot (Remember: Zoom in to see clearly)
+![alt text](screencapture-en-2-h-booking-platform-weld-vercel-app-docs-2026-07-11-12_40_05.png)
 ---
 
 ## Author
