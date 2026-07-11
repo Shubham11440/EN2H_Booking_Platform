@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { BookingStatus } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ServicesService } from '../services/services.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -14,21 +19,58 @@ export class BookingsService {
   ) {}
 
   async create(dto: CreateBookingDto) {
-    // Throws 404 if the service does not exist or is inactive
+    // Rule 1: A booking must belong to an existing and active service
     await this.servicesService.findOne(dto.serviceId);
 
-    return this.prisma.booking.create({
-      data: {
-        customerName: dto.customerName,
-        customerEmail: dto.customerEmail,
-        customerPhone: dto.customerPhone,
-        serviceId: dto.serviceId,
-        bookingDate: dto.bookingDate,
-        bookingTime: dto.bookingTime,
-        notes: dto.notes,
+    // Rule 2: Booking dates cannot be in the past
+    const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+    if (dto.bookingDate < todayStr) {
+      throw new BadRequestException('Booking date cannot be in the past');
+    }
+
+    // Rule 4: Prevent duplicate bookings for the same service, date, and time
+    // Primary check: Pre-emptively query to return a clean error
+    const duplicate = await this.prisma.booking.findUnique({
+      where: {
+        serviceId_bookingDate_bookingTime: {
+          serviceId: dto.serviceId,
+          bookingDate: dto.bookingDate,
+          bookingTime: dto.bookingTime,
+        },
       },
-      select: bookingSelect,
     });
+
+    if (duplicate) {
+      throw new ConflictException(
+        'This service is already booked for the selected date and time',
+      );
+    }
+
+    try {
+      return await this.prisma.booking.create({
+        data: {
+          customerName: dto.customerName,
+          customerEmail: dto.customerEmail,
+          customerPhone: dto.customerPhone,
+          serviceId: dto.serviceId,
+          bookingDate: dto.bookingDate,
+          bookingTime: dto.bookingTime,
+          notes: dto.notes,
+        },
+        select: bookingSelect,
+      });
+    } catch (error) {
+      // Fallback check: catch concurrent unique constraint race condition
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'This service is already booked for the selected date and time',
+        );
+      }
+      throw error;
+    }
   }
 
   async findAll(query: QueryBookingDto) {
@@ -89,8 +131,15 @@ export class BookingsService {
   }
 
   async updateStatus(id: string, dto: UpdateBookingStatusDto) {
-    // findOne validates existence; business rules enforced in Phase 5
-    await this.findOne(id);
+    const existing = await this.findOne(id);
+
+    // Rule 3: Cancelled bookings cannot be marked as completed
+    if (
+      existing.status === BookingStatus.CANCELLED &&
+      dto.status === BookingStatus.COMPLETED
+    ) {
+      throw new BadRequestException('Cancelled bookings cannot be marked as completed');
+    }
 
     return this.prisma.booking.update({
       where: { id },
@@ -100,6 +149,7 @@ export class BookingsService {
   }
 
   async cancel(id: string) {
+    // findOne validates existence
     await this.findOne(id);
 
     return this.prisma.booking.update({
