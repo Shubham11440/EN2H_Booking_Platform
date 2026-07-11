@@ -1,3 +1,13 @@
+// ── Env var safety net ───────────────────────────────────────────────────────
+// Prisma schema declares `directUrl = env("DIRECT_URL")`.
+// On Vercel, DIRECT_URL is only needed for migrations (which run locally).
+// If it is not set as a Vercel env var, fall back to DATABASE_URL so
+// PrismaClient does not crash on cold start.
+if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
@@ -19,6 +29,7 @@ import { GlobalExceptionFilter } from '../src/common/filters/http-exception.filt
 
 const expressServer = express();
 let initialized = false;
+
 
 async function bootstrap() {
   const app = await NestFactory.create(
